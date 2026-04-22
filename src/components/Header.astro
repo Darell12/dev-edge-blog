@@ -10,6 +10,7 @@ const { title, lang = 'es', alternateUrl } = Astro.props;
 const homeUrl = lang === 'en' ? '/en' : '/';
 const articlesLabel = lang === 'es' ? 'Artículos' : 'Articles';
 const aboutLabel = lang === 'es' ? 'Sobre mí' : 'About';
+const aboutUrl = 'https://resume.darell.co';
 const otherLangLabel = lang === 'es' ? 'EN' : 'ES';
 const langSwitchUrl = alternateUrl || (lang === 'es' ? '/en' : '/');
 ---
@@ -20,7 +21,7 @@ const langSwitchUrl = alternateUrl || (lang === 'es' ? '/en' : '/');
 
     <nav class="nav-desktop">
       <a href={homeUrl} class="nav-link">{articlesLabel}</a>
-      <a href={`${homeUrl}about`} class="nav-link">{aboutLabel}</a>
+<a href={aboutUrl} class="nav-link">{aboutLabel}</a>
       <a href={langSwitchUrl} class="lang-switch">{otherLangLabel}</a>
     </nav>
 
@@ -56,7 +57,7 @@ const langSwitchUrl = alternateUrl || (lang === 'es' ? '/en' : '/');
 
   <nav class="nav-mobile" id="mobile-nav">
     <a href={homeUrl} class="nav-link">{articlesLabel}</a>
-    <a href={`${homeUrl}about`} class="nav-link">{aboutLabel}</a>
+    <a href={aboutUrl} class="nav-link">{aboutLabel}</a>
     <a href={langSwitchUrl} class="nav-link lang-switch-mobile">{otherLangLabel}</a>
   </nav>
 </header>
