@@ -1,0 +1,262 @@
+---
+title: "Cache Busting for Angular on AWS S3 + CloudFront: Updated Guide 2026"
+description: "Complete update of the classic cache busting problem for Angular apps deployed on AWS. Angular v19, CloudFront Cache Policies, OAC, and CI/CD automation."
+pubDate: 2026-04-22
+author: "Darell E."
+tags: ["Angular", "AWS", "CloudFront", "S3", "DevOps", "Performance"]
+featured: true
+draft: false
+lang: en
+translationKey: "cache-busting-angular-aws-2026"
+---
+
+## The problem
+
+You deploy a new version of your Angular app. The JS and CSS files have new hashes in their names. But `index.html` is still `index.html`. And CloudFront, being the good CDN it is, happily caches it. Result: users keep seeing the old version until the TTL expires.
+
+**The difference today:** the way to solve it has changed. And there are better ways than putting `Cache-Control` meta tags in HTML (yes, that was an antipattern that should never have existed).
+
+---
+
+## Modern Angular: what changed since 2020
+
+### The build no longer uses `--prod`
+
+In Angular v19 (and since v12, actually), `--prod` disappeared. Now you use environment configurations:
+
+```bash
+# Before (2020)
+ng build --prod
+
+# Now (2026)
+ng build
+```
+
+By default, Angular CLI already generates production builds with:
+
+- **Output hashing automatically enabled** — `main.4cd54d2a590c84799c74.js`
+- **Tree shaking and minification** — no configuration needed
+- **Standalone components** — no more `NgModule` boilerplate
+
+```bash
+# Your dist/ looks like this in 2026
+Initial chunk files   | Names         |  Raw size | Estimated transfer size
+main-XYZABC.js        | main          | 185.45 kB |                51.23 kB
+polyfills-XYZABC.js   | polyfills     |  34.21 kB |                11.04 kB
+styles-XYZABC.css     | styles        |  12.88 kB |                 2.15 kB
+
+                      | Initial total | 232.54 kB |                64.42 kB
+```
+
+> **Note:** Notice that `polyfills-es5` no longer exists. Angular dropped IE11 support years ago. If you still need to support it, you have bigger problems than cache busting.
+
+### Hashes are immutable (and that's good)
+
+Angular generates hashes based on content. If your code doesn't change, the hash doesn't change. This means browsers can cache unchanged chunks **indefinitely** — a huge performance win.
+
+```bash
+# Deploy 1
+main.a1b2c3d.js   → cache 1 year
+
+# Deploy 2 (only one component changed)
+main.e4f5g6h.js   → cache 1 year (new file)
+vendor.a1b2c3d.js → cache 1 year (same hash, still in browser cache)
+```
+
+---
+
+## Modern AWS: CloudFront Cache Policies
+
+You no longer manually edit TTLs on each behavior. Today you use **reusable Cache Policies**.
+
+### Cache Policy for `index.html` (DO NOT cache)
+
+1. CloudFront → Policies → Cache → **Create cache policy**
+
+| Setting | Value |
+|---------|-------|
+| Name | `AngularIndexNoCache` |
+| Minimum TTL | `0` |
+| Maximum TTL | `0` |
+| Default TTL | `0` |
+| Headers in cache key | `None` |
+
+2. Open your distribution → Behaviors → Edit the default `*`
+3. In **Cache policy**, select `AngularIndexNoCache`
+
+**Why TTL = 0?** `index.html` is your entry point. It should never be cached. It always goes to the origin so users receive the latest version.
+
+### Cache Policy for assets (cache 1 year)
+
+| Setting | Value |
+|---------|-------|
+| Name | `AngularAssetsImmutable` |
+| Minimum TTL | `31536000` |
+| Maximum TTL | `31536000` |
+| Default TTL | `31536000` |
+
+Associate it with a behavior with path pattern `*.js`, `*.css`, `*.woff2`.
+
+**The logic:** the hashes in the filenames **are the cache busting**. Content changes → name changes → new file. If the name is the same, the content is identical. Cache for a year without fear.
+
+---
+
+## Origin Access Control (OAC): replacing OAI
+
+**OAI is deprecated.** Use **OAC** (Origin Access Control).
+
+1. CloudFront → Origins → Edit your S3 origin
+2. In **Origin access**, select **Origin access control settings (recommended)**
+3. Create a new OAC → CloudFront gives you a policy to paste into S3
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "AllowCloudFrontOAC",
+    "Effect": "Allow",
+    "Principal": { "Service": "cloudfront.amazonaws.com" },
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::your-angular-bucket/*",
+    "Condition": {
+      "StringEquals": {
+        "AWS:SourceArn": "arn:aws:cloudfront::123456789:distribution/DISTRIBUTION_ID"
+      }
+    }
+  }]
+}
+```
+
+**OAC vs OAI:** supports SSE-KMS, doesn't use legacy IAM identity, is the AWS-recommended way today.
+
+---
+
+## Do NOT use cache-control meta tags
+
+Some still suggest this:
+
+```html
+<!-- ❌ DON'T DO THIS -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+```
+
+**This doesn't work.** Modern browsers ignore those meta tags for static resources, and CloudFront doesn't read them. Real control is in **HTTP headers**.
+
+### Correct headers when uploading to S3
+
+```bash
+# index.html → DO NOT cache
+aws s3 cp dist/browser/index.html s3://your-bucket/ \
+  --cache-control "no-cache, no-store, must-revalidate"
+
+# Hashed assets → cache 1 year
+aws s3 sync dist/browser/ s3://your-bucket/ \
+  --exclude "index.html" \
+  --cache-control "public, max-age=31536000, immutable"
+```
+
+S3 translates `--cache-control` to HTTP headers that CloudFront respects.
+
+---
+
+## CI/CD with GitHub Actions
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy Angular to AWS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789:role/GitHubActionsDeployRole
+          aws-region: us-east-1
+
+      # 1. Clean non-hashed files
+      - run: |
+          aws s3 rm s3://your-bucket/index.html || true
+          aws s3 rm s3://your-bucket/assets/ --recursive || true
+
+      # 2. Upload hashed assets with long cache
+      - run: |
+          aws s3 sync dist/browser/ s3://your-bucket/ \
+            --exclude "index.html" \
+            --cache-control "public, max-age=31536000, immutable"
+
+      # 3. Upload index.html WITHOUT cache
+      - run: |
+          aws s3 cp dist/browser/index.html s3://your-bucket/ \
+            --cache-control "no-cache, no-store, must-revalidate"
+
+      # 4. Invalidate only index.html
+      - run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CF_DISTRIBUTION_ID }} \
+            --paths "/index.html" "/"
+```
+
+### Why invalidate only `index.html`?
+
+Hashed assets are **new files** — CloudFront has never seen them, so they go straight to origin. You only invalidate `index.html` because it's the same path with new content.
+
+### OIDC: no hardcoded credentials
+
+Notice there's no `AWS_ACCESS_KEY_ID`. GitHub Actions authenticates via **OIDC** with AWS IAM:
+
+1. IAM → Identity providers → Add → OpenID Connect
+2. Provider URL: `https://token.actions.githubusercontent.com`
+3. Audience: `sts.amazonaws.com`
+4. Create a role with trust policy for `repo:your-org/your-repo:*`
+
+More secure. More clean. No secrets in the repo.
+
+---
+
+## Final Checklist: Cache Busting in 2026
+
+| # | Check | Status |
+|---|-------|--------|
+| 1 | Angular build generates hashes in production | ✅ Automatic since v12+ |
+| 2 | `index.html` has TTL = 0 in CloudFront | ✅ Cache Policy |
+| 3 | Hashed assets have TTL = 1 year | ✅ Separate Cache Policy |
+| 4 | S3 has correct HTTP headers | ✅ `aws s3 cp --cache-control` |
+| 5 | OAC protects bucket (not legacy OAI) | ✅ Origin Access Control |
+| 6 | CI/CD automates deploy + invalidation | ✅ GitHub Actions |
+| 7 | OIDC instead of hardcoded credentials | ✅ `configure-aws-credentials@v4` |
+
+---
+
+## Conclusion
+
+The cache busting problem still exists, but the tools to solve it have improved dramatically. In 2026, the solution is not an HTML meta tag hack — it's a combination of:
+
+1. **Angular CLI** generating immutable assets with automatic hashes
+2. **CloudFront Cache Policies** managing TTLs declaratively and reusably
+3. **HTTP Headers** controlling cache at the protocol level
+4. **CI/CD** automating deploy and invalidation
+5. **OAC + OIDC** securing everything without hardcoded credentials
+
+The key is understanding that **cache busting is not an Angular problem** — it's a deploy architecture problem. Angular already does its part with output hashing. The rest depends on how you configure your CDN and pipeline.
+
+If you're still doing manual deploys to S3 or using OAI, it's time to update. The ecosystem evolved. So can you.

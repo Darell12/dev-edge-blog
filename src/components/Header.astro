@@ -1,0 +1,335 @@
+---
+interface Props {
+  title: string;
+  lang?: 'es' | 'en';
+  alternateUrl?: string;
+}
+
+const { title, lang = 'es', alternateUrl } = Astro.props;
+
+const homeUrl = lang === 'en' ? '/en' : '/';
+const articlesLabel = lang === 'es' ? 'Artículos' : 'Articles';
+const aboutLabel = lang === 'es' ? 'Sobre mí' : 'About';
+const otherLangLabel = lang === 'es' ? 'EN' : 'ES';
+const langSwitchUrl = alternateUrl || (lang === 'es' ? '/en' : '/');
+---
+
+<header class="header">
+  <div class="header-inner">
+    <a href={homeUrl} class="logo">{title}</a>
+
+    <nav class="nav-desktop">
+      <a href={homeUrl} class="nav-link">{articlesLabel}</a>
+      <a href={`${homeUrl}about`} class="nav-link">{aboutLabel}</a>
+      <a href={langSwitchUrl} class="lang-switch">{otherLangLabel}</a>
+    </nav>
+
+    <div class="header-actions">
+      <button
+        id="theme-toggle"
+        class="theme-toggle"
+        aria-label="Switch to dark mode"
+      >
+        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+
+      <button id="mobile-menu-toggle" class="hamburger" aria-label="Toggle menu">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+    </div>
+  </div>
+
+  <nav class="nav-mobile" id="mobile-nav">
+    <a href={homeUrl} class="nav-link">{articlesLabel}</a>
+    <a href={`${homeUrl}about`} class="nav-link">{aboutLabel}</a>
+    <a href={langSwitchUrl} class="nav-link lang-switch-mobile">{otherLangLabel}</a>
+  </nav>
+</header>
+
+<style>
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: transparent;
+    transition:
+      background-color var(--duration-normal) var(--ease-out),
+      border-color var(--duration-normal) var(--ease-out),
+      backdrop-filter var(--duration-normal) var(--ease-out);
+  }
+
+  .header.scrolled {
+    background: var(--color-bg);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: var(--space-md) var(--space-lg);
+    height: var(--header-height);
+  }
+
+  .logo {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-fg);
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .logo:hover {
+    opacity: 0.8;
+  }
+
+  .nav-desktop {
+    display: none;
+    gap: var(--space-lg);
+  }
+
+  @media (min-width: 768px) {
+    .nav-desktop {
+      display: flex;
+    }
+  }
+
+  .nav-link {
+    font-size: 0.875rem;
+    color: var(--color-fg);
+    opacity: 0.6;
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      color var(--duration-fast) var(--ease-out);
+  }
+
+  .nav-link:hover {
+    opacity: 1;
+  }
+
+  .lang-switch,
+  .lang-switch-mobile {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: var(--color-fg);
+    opacity: 0.6;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    transition: all var(--duration-fast) var(--ease-out);
+  }
+
+  .lang-switch:hover,
+  .lang-switch-mobile:hover {
+    opacity: 1;
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-alt);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--color-fg);
+    transition:
+      border-color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .theme-toggle:hover {
+    border-color: var(--color-border-strong);
+  }
+
+  .theme-toggle .icon-sun,
+  .theme-toggle .icon-moon {
+    position: absolute;
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      transform var(--duration-fast) var(--ease-out);
+  }
+
+  :root:not([data-theme="dark"]) .icon-moon,
+  [data-theme="light"] .icon-moon {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  :root[data-theme="dark"] .icon-sun,
+  [data-theme="dark"] .icon-sun {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  .theme-toggle .icon-sun {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .theme-toggle .icon-moon {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  [data-theme="dark"] .theme-toggle .icon-sun {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  [data-theme="dark"] .theme-toggle .icon-moon {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    gap: 4px;
+    padding: 8px;
+  }
+
+  @media (min-width: 768px) {
+    .hamburger {
+      display: none;
+    }
+  }
+
+  .hamburger-line {
+    width: 18px;
+    height: 2px;
+    background: var(--color-fg);
+    transition:
+      transform var(--duration-fast) var(--ease-out),
+      opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .hamburger.active .hamburger-line:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .hamburger.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+  }
+
+  .hamburger.active .hamburger-line:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .nav-mobile {
+    display: none;
+    flex-direction: column;
+    padding: var(--space-md) var(--space-lg);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .nav-mobile.open {
+    display: flex;
+  }
+
+  @media (min-width: 768px) {
+    .nav-mobile {
+      display: none !important;
+    }
+  }
+
+  .nav-mobile .nav-link {
+    padding: var(--space-sm) 0;
+    opacity: 1;
+  }
+</style>
+
+<script>
+  // Theme toggle functionality
+  const themeToggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+
+  function updateToggleIcon() {
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    themeToggle?.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+
+  themeToggle?.addEventListener('click', () => {
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    const newTheme = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateToggleIcon();
+  });
+
+  // Initialize toggle icon state
+  updateToggleIcon();
+
+  // Header scroll effect
+  const header = document.querySelector('.header');
+  let lastScroll = 0;
+
+  window.addEventListener('scroll', () => {
+    const currentScroll = window.scrollY;
+
+    if (currentScroll > 50) {
+      header?.classList.add('scrolled');
+    } else {
+      header?.classList.remove('scrolled');
+    }
+
+    lastScroll = currentScroll;
+  }, { passive: true });
+
+  // Mobile menu toggle
+  const mobileToggle = document.getElementById('mobile-menu-toggle');
+  const mobileNav = document.getElementById('mobile-nav');
+
+  mobileToggle?.addEventListener('click', () => {
+    mobileToggle.classList.toggle('active');
+    mobileNav?.classList.toggle('open');
+  });
+
+  // Close mobile menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.header')) {
+      mobileToggle?.classList.remove('active');
+      mobileNav?.classList.remove('open');
+    }
+  });
+</script>

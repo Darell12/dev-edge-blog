@@ -1,0 +1,261 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import TOC from '../components/TOC.astro';
+import Tag from '../components/Tag.astro';
+import ArticleContent from '../components/ArticleContent.astro';
+import { getCollection } from 'astro:content';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface PrevNextArticle {
+  slug: string;
+  title: string;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  author: string;
+  tags: string[];
+  headings: Heading[];
+  prevArticle?: PrevNextArticle;
+  nextArticle?: PrevNextArticle;
+  lang?: 'es' | 'en';
+  translationKey?: string;
+}
+
+const {
+  title,
+  description,
+  pubDate,
+  updatedDate,
+  author,
+  tags,
+  headings,
+  prevArticle,
+  nextArticle,
+  lang = 'es',
+  translationKey
+} = Astro.props;
+
+// Find alternate language article
+let alternateUrl: string | undefined;
+if (translationKey) {
+  const allArticles = await getCollection('articles');
+  const alternateLang = lang === 'es' ? 'en' : 'es';
+  const alternateArticle = allArticles.find(
+    a => a.data.translationKey === translationKey && a.data.lang === alternateLang && !a.data.draft
+  );
+  if (alternateArticle) {
+    const prefix = alternateLang === 'en' ? '/en' : '';
+    alternateUrl = `${prefix}/articles/${alternateArticle.slug}`;
+  }
+}
+
+const locale = lang === 'es' ? 'es-ES' : 'en-US';
+const formattedPubDate = pubDate.toLocaleDateString(locale, {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+});
+
+const formattedUpdatedDate = updatedDate?.toLocaleDateString(locale, {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+});
+
+const prefix = lang === 'en' ? '/en' : '';
+const prevLabel = lang === 'es' ? 'Anterior' : 'Previous';
+const nextLabel = lang === 'es' ? 'Siguiente' : 'Next';
+const updatedLabel = lang === 'es' ? 'Actualizado' : 'Updated';
+---
+
+<BaseLayout title={title} description={description} lang={lang} alternateUrl={alternateUrl}>
+  <article class="article">
+    <header class="article-header">
+      <div class="article-meta-top">
+        {tags.map((tag) => (
+          <Tag name={tag} />
+        ))}
+      </div>
+
+      <h1 class="article-title">{title}</h1>
+
+      <div class="article-meta">
+        <span class="author">{author}</span>
+        <span class="separator">&middot;</span>
+        <time datetime={pubDate.toISOString()}>{formattedPubDate}</time>
+        {updatedDate && (
+          <>
+            <span class="separator">&middot;</span>
+            <span class="updated">{updatedLabel}: {formattedUpdatedDate}</span>
+          </>
+        )}
+      </div>
+    </header>
+
+    <div class="article-layout">
+      <div class="article-content-wrapper">
+        <ArticleContent>
+          <slot />
+        </ArticleContent>
+      </div>
+
+      {headings.length > 0 && (
+        <aside class="article-sidebar">
+          <TOC headings={headings} />
+        </aside>
+      )}
+    </div>
+
+    {(prevArticle || nextArticle) && (
+      <nav class="article-nav">
+        <div class="nav-links">
+          {prevArticle && (
+            <a href={`${prefix}/articles/${prevArticle.slug}`} class="nav-link prev">
+              <span class="nav-label">{prevLabel}</span>
+              <span class="nav-title">{prevArticle.title}</span>
+            </a>
+          )}
+          {nextArticle && (
+            <a href={`${prefix}/articles/${nextArticle.slug}`} class="nav-link next">
+              <span class="nav-label">{nextLabel}</span>
+              <span class="nav-title">{nextArticle.title}</span>
+            </a>
+          )}
+        </div>
+      </nav>
+    )}
+  </article>
+</BaseLayout>
+
+<style>
+  .article {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: calc(var(--header-height) + var(--space-xl)) var(--space-lg) var(--space-xl);
+  }
+
+  .article-header {
+    max-width: 720px;
+    margin-bottom: var(--space-xl);
+  }
+
+  .article-meta-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+  }
+
+  .article-title {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: var(--space-md);
+  }
+
+  @media (max-width: 768px) {
+    .article-title {
+      font-size: 2rem;
+    }
+  }
+
+  .article-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--color-fg-muted);
+  }
+
+  .separator {
+    color: var(--color-border-strong);
+  }
+
+  .article-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+
+  @media (min-width: 1024px) {
+    .article-layout {
+      grid-template-columns: 1fr 280px;
+    }
+  }
+
+  .article-sidebar {
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .article-sidebar {
+      display: block;
+    }
+  }
+
+  .article-nav {
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-xl);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .nav-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+
+  @media (max-width: 768px) {
+    .nav-links {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition:
+      border-color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .nav-link:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-alt);
+  }
+
+  .nav-link.next {
+    text-align: right;
+  }
+
+  .nav-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+  }
+
+  .nav-title {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    color: var(--color-fg);
+  }
+</style>

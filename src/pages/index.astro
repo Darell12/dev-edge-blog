@@ -1,0 +1,178 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+import Tag from '../components/Tag.astro';
+import { getCollection } from 'astro:content';
+
+const allArticles = await getCollection('articles', ({ data }) => !data.draft && data.lang === 'es');
+const sortedArticles = allArticles.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+// Get unique tags
+const allTags = [...new Set(allArticles.flatMap(a => a.data.tags))].sort();
+
+// Filter by tag if provided
+const selectedTag = Astro.url.searchParams.get('tag');
+const filteredArticles = selectedTag
+  ? sortedArticles.filter(a => a.data.tags.includes(selectedTag))
+  : sortedArticles;
+---
+
+<BaseLayout
+  title="DevEdge Blog"
+  description="Un blog técnico sobre ingeniería de software, arquitectura y mejores prácticas."
+  lang="es"
+  alternateUrl="/en"
+>
+  <section class="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">DevEdge Blog</h1>
+      <p class="hero-subtitle">
+        Pensamientos sobre ingeniería de software, arquitectura y el arte de construir cosas que perduran.
+      </p>
+    </div>
+  </section>
+
+  <section class="articles-section">
+    <div class="container">
+      {allTags.length > 0 && (
+        <div class="tag-filter">
+          <a href="/" class={`tag-btn ${!selectedTag ? 'active' : ''}`}>
+            Todo
+          </a>
+          {allTags.map(tag => (
+            <a
+              href={`/?tag=${encodeURIComponent(tag)}`}
+              class={`tag-btn ${selectedTag === tag ? 'active' : ''}`}
+            >
+              {tag}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {filteredArticles.length > 0 ? (
+        <div class="articles-grid">
+          {filteredArticles.map(article => (
+            <ArticleCard
+              title={article.data.title}
+              description={article.data.description}
+              pubDate={article.data.pubDate}
+              tags={article.data.tags}
+              slug={article.slug}
+              featured={article.data.featured}
+              lang="es"
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state">
+          <p>No se encontraron artículos{selectedTag ? ` con etiqueta "${selectedTag}"` : ''}.</p>
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    padding: calc(var(--header-height) + var(--space-2xl)) var(--space-lg) var(--space-xl);
+    text-align: center;
+  }
+
+  .hero-content {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .hero-title {
+    font-family: var(--font-heading);
+    font-size: 4rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: var(--space-md);
+  }
+
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2.5rem;
+    }
+  }
+
+  .hero-subtitle {
+    font-size: 1.125rem;
+    color: var(--color-fg-muted);
+    line-height: 1.6;
+  }
+
+  .articles-section {
+    padding: var(--space-xl) 0;
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--space-lg);
+  }
+
+  .tag-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+    overflow-x: auto;
+    padding-bottom: var(--space-sm);
+  }
+
+  .tag-btn {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    background: transparent;
+    white-space: nowrap;
+    transition:
+      background-color var(--duration-fast) var(--ease-out),
+      color var(--duration-fast) var(--ease-out),
+      border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .tag-btn:hover {
+    background: var(--color-bg-alt);
+    color: var(--color-fg);
+    border-color: var(--color-border-strong);
+  }
+
+  .tag-btn.active {
+    background: var(--color-fg);
+    color: var(--color-bg);
+    border-color: var(--color-fg);
+  }
+
+  .articles-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+  }
+
+  @media (max-width: 1024px) {
+    .articles-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .articles-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: var(--space-2xl) 0;
+    color: var(--color-fg-muted);
+  }
+</style>

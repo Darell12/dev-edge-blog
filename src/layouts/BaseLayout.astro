@@ -1,0 +1,94 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogType?: string;
+  canonicalURL?: string;
+  lang?: 'es' | 'en';
+  alternateUrl?: string;
+}
+
+const {
+  title,
+  description,
+  ogImage = '/og-image.png',
+  ogType = 'website',
+  canonicalURL = Astro.url.href,
+  lang = 'es',
+  alternateUrl
+} = Astro.props;
+
+const siteTitle = 'DevEdge Blog';
+const fullTitle = title === siteTitle ? title : `${title} — ${siteTitle}`;
+
+const defaultDesc = lang === 'es'
+  ? 'Un blog técnico sobre ingeniería de software, arquitectura y mejores prácticas.'
+  : 'A technical blog about software engineering, architecture, and best practices.';
+const resolvedDesc = description || defaultDesc;
+---
+
+<!DOCTYPE html>
+<html lang={lang} data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={resolvedDesc} />
+
+    <!-- Theme detection (must run before any paint) -->
+    <script is:inline>
+      (function() {
+        const saved = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = saved ?? (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={resolvedDesc} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalURL} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={resolvedDesc} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalURL} />
+
+    <title>{fullTitle}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Umami Analytics — privacy-first tracking -->
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="414f7101-13b8-4c93-8d31-7f4159d57fc8"></script>
+  </head>
+  <body>
+    <Header title={siteTitle} lang={lang} alternateUrl={alternateUrl} />
+
+    <main>
+      <slot />
+    </main>
+
+    <Footer lang={lang} />
+  </body>
+</html>
+
+<style is:global>
+  /* Import global styles */
+  @import '../styles/global.css';
+</style>

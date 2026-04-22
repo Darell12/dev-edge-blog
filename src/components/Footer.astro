@@ -1,0 +1,82 @@
+---
+interface Props {
+  lang?: 'es' | 'en';
+}
+
+const { lang = 'es' } = Astro.props;
+const currentYear = new Date().getFullYear();
+const rightsLabel = lang === 'es' ? 'Todos los derechos reservados.' : 'All rights reserved.';
+---
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="social-links">
+      <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="social-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+        </svg>
+      </a>
+      <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" class="social-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4l11.733 16h4.267l-11.733 -16z"></path>
+          <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path>
+        </svg>
+      </a>
+      <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" class="social-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+          <rect x="2" y="9" width="4" height="12"></rect>
+          <circle cx="4" cy="4" r="2"></circle>
+        </svg>
+      </a>
+    </div>
+
+    <p class="copyright">
+      &copy; {currentYear} DevEdge Blog. {rightsLabel}
+    </p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-xl) 0;
+    margin-top: var(--space-2xl);
+  }
+
+  .footer-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  @media (min-width: 768px) {
+    .footer-inner {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+
+  .social-links {
+    display: flex;
+    gap: var(--space-md);
+  }
+
+  .social-link {
+    color: var(--color-fg-muted);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .social-link:hover {
+    color: var(--color-fg);
+  }
+
+  .copyright {
+    font-size: 0.875rem;
+    color: var(--color-fg-muted);
+  }
+</style>

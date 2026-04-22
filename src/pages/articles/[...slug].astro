@@ -1,0 +1,43 @@
+---
+import { getCollection } from 'astro:content';
+import ArticleLayout from '../../layouts/ArticleLayout.astro';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('articles', ({ data }) => !data.draft && data.lang === 'es');
+  return articles.map(article => ({
+    params: { slug: article.slug },
+    props: { article },
+  }));
+}
+
+const { article } = Astro.props;
+const { Content, headings } = await article.render();
+
+// Get prev/next articles for navigation (same language)
+const allArticles = await getCollection('articles', ({ data }) => !data.draft && data.lang === 'es');
+const sortedArticles = allArticles.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const currentIndex = sortedArticles.findIndex(a => a.slug === article.slug);
+const prevArticle = currentIndex < sortedArticles.length - 1
+  ? { slug: sortedArticles[currentIndex + 1].slug, title: sortedArticles[currentIndex + 1].data.title }
+  : undefined;
+const nextArticle = currentIndex > 0
+  ? { slug: sortedArticles[currentIndex - 1].slug, title: sortedArticles[currentIndex - 1].data.title }
+  : undefined;
+---
+
+<ArticleLayout
+  title={article.data.title}
+  description={article.data.description}
+  pubDate={article.data.pubDate}
+  updatedDate={article.data.updatedDate}
+  author={article.data.author}
+  tags={article.data.tags}
+  headings={headings}
+  prevArticle={prevArticle}
+  nextArticle={nextArticle}
+  lang="es"
+  translationKey={article.data.translationKey}
+>
+  <Content />
+</ArticleLayout>
