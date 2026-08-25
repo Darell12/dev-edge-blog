@@ -1,0 +1,70 @@
+---
+interface Props {
+  lang?: 'es' | 'en';
+}
+
+const { lang = 'es' } = Astro.props;
+const isSpanish = lang === 'es';
+const heading = isSpanish ? '¿Necesitas una segunda mirada técnica?' : 'Need a second technical look?';
+const description = isSpanish
+  ? 'Si tienes problemas con despliegues, caché o rendimiento en Angular, AWS o CloudFront, solicita una conversación inicial y una revisión técnica por correo.'
+  : 'If you are facing Angular, AWS, or CloudFront deployment, caching, or performance problems, request an initial conversation and technical review by email.';
+const linkLabel = isSpanish ? 'Solicitar una revisión técnica inicial' : 'Request an initial technical review';
+const subject = isSpanish
+  ? 'Solicitud%20de%20revisi%C3%B3n%20t%C3%A9cnica%20de%20Angular%2C%20AWS%20o%20CloudFront'
+  : 'Request%20for%20an%20Angular%2C%20AWS%2C%20or%20CloudFront%20technical%20review';
+const href = `mailto:darellorlandoe@gmail.com?subject=${subject}`;
+---
+
+<section class="consulting-cta" aria-labelledby="consulting-cta-title">
+  <h2 id="consulting-cta-title">{heading}</h2>
+  <p>{description}</p>
+  <a href={href} class="consulting-cta-link">{linkLabel}</a>
+</section>
+
+<style>
+  .consulting-cta {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-lg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-alt);
+  }
+
+  h2 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 0 0 var(--space-sm);
+  }
+
+  p {
+    margin: 0 0 var(--space-md);
+    color: var(--color-fg-muted);
+    line-height: 1.6;
+  }
+
+  .consulting-cta-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    background: var(--color-fg);
+    color: var(--color-bg);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+  }
+
+  .consulting-cta-link:hover {
+    background: var(--color-fg-muted);
+  }
+
+  .consulting-cta-link:focus-visible {
+    outline: 3px solid var(--color-fg);
+    outline-offset: 3px;
+  }
+</style>

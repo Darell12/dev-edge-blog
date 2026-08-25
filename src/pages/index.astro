@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ArticleCard from '../components/ArticleCard.astro';
 import Tag from '../components/Tag.astro';
+import ConsultingCTA from '../components/ConsultingCTA.astro';
 import { getCollection } from 'astro:content';
 
 const allArticles = await getCollection('articles', ({ data }) => !data.draft && data.lang === 'es');
@@ -31,6 +32,8 @@ const filteredArticles = selectedTag
       </p>
     </div>
   </section>
+
+  <ConsultingCTA lang="es" />
 
   <section class="articles-section">
     <div class="container">

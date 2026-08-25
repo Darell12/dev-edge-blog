@@ -3,6 +3,7 @@ import BaseLayout from './BaseLayout.astro';
 import TOC from '../components/TOC.astro';
 import Tag from '../components/Tag.astro';
 import ArticleContent from '../components/ArticleContent.astro';
+import ConsultingCTA from '../components/ConsultingCTA.astro';
 import { getCollection } from 'astro:content';
 
 interface Heading {
@@ -114,6 +115,8 @@ const updatedLabel = lang === 'es' ? 'Actualizado' : 'Updated';
         </aside>
       )}
     </div>
+
+    <ConsultingCTA lang={lang} />
 
     {(prevArticle || nextArticle) && (
       <nav class="article-nav">
