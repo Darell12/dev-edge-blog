@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Contacto"
+  description="Canal de contacto de DevEdge Blog."
+  lang="es"
+>
+  <article class="legal-page">
+    <div class="container">
+      <header>
+        <p class="eyebrow">DevEdge Blog</p>
+        <h1>Contacto</h1>
+        <p>Para consultas sobre el blog, correcciones, colaboraciones o recomendaciones técnicas, escríbeme por correo.</p>
+      </header>
+
+      <section aria-labelledby="correo">
+        <h2 id="correo">Correo electrónico</h2>
+        <p><a class="email" href="mailto:darellorlandoe@gmail.com">darellorlandoe@gmail.com</a></p>
+      </section>
+
+      <section aria-labelledby="aviso">
+        <h2 id="aviso">Aviso general</h2>
+        <p>DevEdge Blog comparte información general y técnica; los mensajes y contenidos no constituyen asesoría legal.</p>
+      </section>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .legal-page { padding: calc(var(--header-height) + var(--space-xl)) 0 var(--space-2xl); }
+  .legal-page .container { max-width: 760px; }
+  header { margin-bottom: var(--space-xl); }
+  .eyebrow { color: var(--color-fg-muted); font-family: var(--font-mono); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-sm); }
+  h1, h2 { font-family: var(--font-heading); font-weight: 400; }
+  h1 { font-size: clamp(2.5rem, 7vw, 4rem); line-height: 1.1; margin-bottom: var(--space-md); }
+  section { border-top: 1px solid var(--color-border); padding: var(--space-lg) 0; }
+  h2 { font-size: 1.75rem; margin-bottom: var(--space-sm); }
+  .email { text-decoration: underline; text-underline-offset: 0.2em; }
+  a:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 3px; }
+</style>

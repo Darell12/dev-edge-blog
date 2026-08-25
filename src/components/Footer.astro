@@ -31,6 +31,12 @@ const rightsLabel = lang === 'es' ? 'Todos los derechos reservados.' : 'All righ
       </a>
     </div>
 
+    <nav class="legal-links" aria-label="Enlaces legales">
+      <a href="/privacy">Privacidad</a>
+      <a href="/contact">Contacto</a>
+      <a href="/affiliate-disclosure">Afiliados</a>
+    </nav>
+
     <p class="copyright">
       &copy; {currentYear} DevEdge Blog. {rightsLabel}
     </p>
@@ -73,6 +79,25 @@ const rightsLabel = lang === 'es' ? 'Todos los derechos reservados.' : 'All righ
 
   .social-link:hover {
     color: var(--color-fg);
+  }
+
+  .legal-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-md);
+    font-size: 0.875rem;
+    color: var(--color-fg-muted);
+  }
+
+  .legal-links a:hover {
+    color: var(--color-fg);
+  }
+
+  .legal-links a:focus-visible,
+  .social-link:focus-visible {
+    outline: 2px solid var(--color-fg);
+    outline-offset: 3px;
   }
 
   .copyright {

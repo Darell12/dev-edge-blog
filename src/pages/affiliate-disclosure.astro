@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Afiliados"
+  description="Divulgación de enlaces de afiliados de DevEdge Blog."
+  lang="es"
+>
+  <article class="legal-page">
+    <div class="container">
+      <header>
+        <p class="eyebrow">DevEdge Blog</p>
+        <h1>Divulgación de afiliados</h1>
+        <p>DevEdge Blog es un blog técnico administrado por Darell Estren, persona natural en Colombia.</p>
+      </header>
+
+      <section aria-labelledby="estado-actual">
+        <h2 id="estado-actual">Estado actual</h2>
+        <p>Actualmente, DevEdge Blog no utiliza enlaces de afiliados ni declara relaciones de afiliación con terceros.</p>
+      </section>
+
+      <section aria-labelledby="futuro">
+        <h2 id="futuro">Recomendaciones futuras</h2>
+        <p>Si en el futuro se incluyen enlaces de afiliados, se identificarán claramente cerca de cada recomendación para que puedas reconocerlos antes de usarlos.</p>
+      </section>
+
+      <section aria-labelledby="criterio">
+        <h2 id="criterio">Criterio editorial</h2>
+        <p>Las recomendaciones buscarán ser útiles para la audiencia técnica. El contenido de DevEdge Blog es información general y no constituye asesoría legal.</p>
+      </section>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .legal-page { padding: calc(var(--header-height) + var(--space-xl)) 0 var(--space-2xl); }
+  .legal-page .container { max-width: 760px; }
+  header { margin-bottom: var(--space-xl); }
+  .eyebrow { color: var(--color-fg-muted); font-family: var(--font-mono); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-sm); }
+  h1, h2 { font-family: var(--font-heading); font-weight: 400; }
+  h1 { font-size: clamp(2.5rem, 7vw, 4rem); line-height: 1.1; margin-bottom: var(--space-md); }
+  section { border-top: 1px solid var(--color-border); padding: var(--space-lg) 0; }
+  h2 { font-size: 1.75rem; margin-bottom: var(--space-sm); }
+</style>

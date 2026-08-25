@@ -1,0 +1,61 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Privacidad"
+  description="Política de privacidad de DevEdge Blog."
+  lang="es"
+>
+  <article class="legal-page">
+    <div class="container">
+      <header>
+        <p class="eyebrow">DevEdge Blog</p>
+        <h1>Política de privacidad</h1>
+        <p class="updated">Última actualización: 25 de agosto de 2026.</p>
+      </header>
+
+      <section aria-labelledby="responsable">
+        <h2 id="responsable">Responsable</h2>
+        <p>DevEdge Blog es un blog técnico administrado por Darell Estren, persona natural en Colombia.</p>
+      </section>
+
+      <section aria-labelledby="informacion">
+        <h2 id="informacion">Información que se trata</h2>
+        <p>Solo recibimos tu correo electrónico y el contenido que nos envíes voluntariamente al escribirnos. Usamos esa información únicamente para responder tu consulta.</p>
+        <p>El sitio usa Umami Analytics, según su configuración actual, para estadísticas de uso; guarda tu preferencia de tema en <code>localStorage</code>; y realiza solicitudes externas a Google Fonts para cargar tipografías.</p>
+      </section>
+
+      <section aria-labelledby="terceros">
+        <h2 id="terceros">Enlaces externos</h2>
+        <p>Al seguir enlaces a sitios externos, se aplican sus propias políticas de privacidad. DevEdge Blog no controla sus prácticas.</p>
+      </section>
+
+      <section aria-labelledby="derechos">
+        <h2 id="derechos">Tus derechos</h2>
+        <p>Puedes solicitar acceso, corrección, eliminación o revocación del tratamiento de tus datos escribiendo a <a href="mailto:darellorlandoe@gmail.com">darellorlandoe@gmail.com</a>.</p>
+      </section>
+
+      <section aria-labelledby="aviso">
+        <h2 id="aviso">Aviso general</h2>
+        <p>El contenido de DevEdge Blog es información general y técnica; no constituye asesoría legal.</p>
+      </section>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .legal-page { padding: calc(var(--header-height) + var(--space-xl)) 0 var(--space-2xl); }
+  .legal-page .container { max-width: 760px; }
+  header { margin-bottom: var(--space-xl); }
+  .eyebrow, .updated { color: var(--color-fg-muted); font-size: 0.875rem; }
+  .eyebrow { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-sm); }
+  h1, h2 { font-family: var(--font-heading); font-weight: 400; }
+  h1 { font-size: clamp(2.5rem, 7vw, 4rem); line-height: 1.1; margin-bottom: var(--space-sm); }
+  section { border-top: 1px solid var(--color-border); padding: var(--space-lg) 0; }
+  h2 { font-size: 1.75rem; margin-bottom: var(--space-sm); }
+  p + p { margin-top: var(--space-md); }
+  a { text-decoration: underline; text-underline-offset: 0.2em; }
+  a:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 3px; }
+  code { font-family: var(--font-mono); font-size: 0.9em; }
+</style>
