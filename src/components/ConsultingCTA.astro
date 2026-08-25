@@ -19,7 +19,7 @@ const href = `mailto:darellorlandoe@gmail.com?subject=${subject}`;
 <section class="consulting-cta" aria-labelledby="consulting-cta-title">
   <h2 id="consulting-cta-title">{heading}</h2>
   <p>{description}</p>
-  <a href={href} class="consulting-cta-link">{linkLabel}</a>
+  <a href={href} class="consulting-cta-link" data-umami-event="consulting-cta-click" data-umami-event-lang={lang}>{linkLabel}</a>
 </section>
 
 <style>
