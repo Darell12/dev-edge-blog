@@ -10,6 +10,7 @@ interface Props {
   canonicalURL?: string;
   lang?: 'es' | 'en';
   alternateUrl?: string;
+  jsonLd?: Record<string, unknown>;
 }
 
 const {
@@ -19,7 +20,8 @@ const {
   ogType = 'website',
   canonicalURL = Astro.url.href,
   lang = 'es',
-  alternateUrl
+  alternateUrl,
+  jsonLd
 } = Astro.props;
 
 const siteTitle = 'DevEdge Blog';
@@ -74,6 +76,10 @@ const resolvedDesc = description || defaultDesc;
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    {jsonLd && (
+      <script type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')} />
+    )}
 
     <!-- Umami Analytics — privacy-first tracking -->
     <script defer src="https://cloud.umami.is/script.js" data-website-id="414f7101-13b8-4c93-8d31-7f4159d57fc8"></script>

@@ -76,9 +76,23 @@ const prefix = lang === 'en' ? '/en' : '';
 const prevLabel = lang === 'es' ? 'Anterior' : 'Previous';
 const nextLabel = lang === 'es' ? 'Siguiente' : 'Next';
 const updatedLabel = lang === 'es' ? 'Actualizado' : 'Updated';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  description,
+  image: new URL('/og-image.svg', Astro.site).href,
+  datePublished: pubDate.toISOString(),
+  ...(updatedDate ? { dateModified: updatedDate.toISOString() } : {}),
+  inLanguage: lang,
+  author: { '@type': 'Person', name: author },
+  publisher: { '@type': 'Organization', name: 'DevEdge Blog' },
+  mainEntityOfPage: { '@type': 'WebPage', '@id': Astro.url.href },
+};
 ---
 
-<BaseLayout title={title} description={description} lang={lang} alternateUrl={alternateUrl}>
+<BaseLayout title={title} description={description} lang={lang} alternateUrl={alternateUrl} jsonLd={jsonLd}>
   <article class="article">
     <header class="article-header">
       <div class="article-meta-top">
