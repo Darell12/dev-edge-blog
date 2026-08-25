@@ -1,0 +1,126 @@
+---
+interface Props {
+  lang?: 'es' | 'en';
+}
+
+const { lang = 'es' } = Astro.props;
+const copy = lang === 'es'
+  ? {
+      title: 'La clave debe representar el resultado',
+      contextA: 'Contexto A',
+      contextB: 'Contexto B',
+      request: 'GET /api/summary',
+      badKey: 'Clave incompleta',
+      goodKey: 'Clave compuesta',
+      stale: 'HIT: se reutiliza la respuesta de A para B — dato obsoleto',
+      fresh: 'MISS: B obtiene su propia respuesta — dato correcto',
+      badHint: 'La URL sola no distingue el contexto.',
+      goodHint: 'Cada entrada incluye todos los inputs que cambian la respuesta.',
+      choose: 'Ver resultado para',
+      selected: 'Estado actual:',
+    }
+  : {
+      title: 'The key must represent the result',
+      contextA: 'Context A',
+      contextB: 'Context B',
+      request: 'GET /api/summary',
+      badKey: 'Incomplete key',
+      goodKey: 'Composite key',
+      stale: 'HIT: A’s response is reused for B — stale data',
+      fresh: 'MISS: B gets its own response — correct data',
+      badHint: 'The URL alone does not identify the context.',
+      goodHint: 'Every entry includes every input that changes the response.',
+      choose: 'Show result for',
+      selected: 'Current state:',
+    };
+---
+
+<section class="context-cache-flow" data-context-cache-flow aria-labelledby="context-cache-flow-title">
+  <div class="context-cache-flow__heading">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h10M4 17h13" /><circle cx="17" cy="12" r="2" /></svg>
+    <h3 id="context-cache-flow-title">{copy.title}</h3>
+  </div>
+
+  <div class="context-cache-flow__comparison">
+    <section class="context-cache-flow__case context-cache-flow__case--bad" aria-labelledby="bad-key-title">
+      <p class="context-cache-flow__eyebrow">{copy.badKey}</p>
+      <h4 id="bad-key-title"><code>{copy.request}</code></h4>
+      <p>{copy.badHint}</p>
+      <dl class="context-cache-flow__contexts">
+        <div><dt>{copy.contextA}</dt><dd><code>{copy.request}</code> → response A</dd></div>
+        <div><dt>{copy.contextB}</dt><dd><code>{copy.request}</code> → <strong>{copy.stale}</strong></dd></div>
+      </dl>
+    </section>
+
+    <section class="context-cache-flow__case context-cache-flow__case--good" aria-labelledby="good-key-title">
+      <p class="context-cache-flow__eyebrow">{copy.goodKey}</p>
+      <h4 id="good-key-title"><code>summary:{'{contextId}'}</code></h4>
+      <p>{copy.goodHint}</p>
+      <dl class="context-cache-flow__contexts">
+        <div><dt>{copy.contextA}</dt><dd><code>summary:context-a</code> → response A</dd></div>
+        <div><dt>{copy.contextB}</dt><dd><code>summary:context-b</code> → response B</dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <div class="context-cache-flow__controls" aria-label={copy.choose}>
+    <button type="button" data-context="a" aria-pressed="true">{copy.contextA}</button>
+    <button type="button" data-context="b" aria-pressed="false">{copy.contextB}</button>
+  </div>
+  <p class="context-cache-flow__status" aria-live="polite"><span class="sr-only">{copy.selected} </span><span data-status>{copy.contextA}: {copy.fresh}</span></p>
+</section>
+
+<style>
+  .context-cache-flow { margin: var(--space-lg) 0; padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-alt); }
+  .context-cache-flow__heading { display: flex; gap: var(--space-sm); align-items: center; }
+  .context-cache-flow__heading svg { width: 1.25rem; flex: 0 0 auto; fill: none; stroke: var(--color-accent); stroke-width: 2; stroke-linecap: round; }
+  .context-cache-flow h3, .context-cache-flow h4, .context-cache-flow p { margin: 0; }
+  .context-cache-flow h3 { font: 600 1.125rem/1.4 var(--font-heading); color: var(--color-fg); }
+  .context-cache-flow__comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); margin: var(--space-md) 0; }
+  .context-cache-flow__case { padding: var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+  .context-cache-flow__case--bad { border-top: 3px solid #b45309; }
+  .context-cache-flow__case--good { border-top: 3px solid #15803d; }
+  :global([data-theme='dark']) .context-cache-flow__case--bad { border-top-color: #d97706; }
+  :global([data-theme='dark']) .context-cache-flow__case--good { border-top-color: #22c55e; }
+  .context-cache-flow__eyebrow { font: 600 0.75rem/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--color-fg-muted); }
+  .context-cache-flow h4 { margin-top: .3rem; color: var(--color-fg); font: 600 1rem/1.4 var(--font-heading); }
+  .context-cache-flow__case > p:not(.context-cache-flow__eyebrow) { margin-top: var(--space-xs); color: var(--color-fg-muted); font-size: .875rem; line-height: 1.45; }
+  .context-cache-flow__contexts { margin: var(--space-sm) 0 0; }
+  .context-cache-flow__contexts div { padding: .45rem 0; border-top: 1px solid var(--color-border); }
+  .context-cache-flow dt { color: var(--color-fg); font: 600 .75rem/1.4 var(--font-mono); }
+  .context-cache-flow dd { margin: .15rem 0 0; color: var(--color-fg-muted); font-size: .875rem; line-height: 1.4; }
+  .context-cache-flow strong { color: #92400e; }
+  :global([data-theme='dark']) .context-cache-flow strong { color: #fbbf24; }
+  .context-cache-flow__controls { display: none; gap: var(--space-sm); flex-wrap: wrap; }.context-cache-flow[data-enhanced] .context-cache-flow__controls { display: flex; }
+  .context-cache-flow__controls button { min-height: 2.5rem; padding: .5rem .75rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: transparent; color: var(--color-fg); font: inherit; cursor: pointer; }
+  .context-cache-flow__controls button[aria-pressed='true'] { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-bg); }
+  .context-cache-flow__controls button:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
+  .context-cache-flow__status { min-height: 1.5rem; margin-top: var(--space-sm); color: var(--color-fg-muted); font-size: 1rem; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  @media (max-width: 42rem) { .context-cache-flow__comparison { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: no-preference) { .context-cache-flow__status[data-updated] { animation: context-cache-flow-fade var(--duration-fast) var(--ease-out); } @keyframes context-cache-flow-fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } } }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-context-cache-flow]').forEach((flow) => {
+    const buttons = Array.from(flow.querySelectorAll<HTMLButtonElement>('[data-context]'));
+    const status = flow.querySelector<HTMLElement>('[data-status]');
+    const statusWrap = flow.querySelector<HTMLElement>('.context-cache-flow__status');
+    const isSpanish = document.documentElement.lang.startsWith('es');
+    const messages = isSpanish
+      ? { a: 'Contexto A: MISS: A obtiene su propia respuesta — dato correcto', b: 'Contexto B: HIT con clave incompleta: reutiliza la respuesta de A — dato obsoleto. Con clave compuesta: MISS y respuesta B correcta.' }
+      : { a: 'Context A: MISS: A gets its own response — correct data', b: 'Context B: HIT with an incomplete key: A’s response is reused — stale data. With a composite key: MISS and correct B response.' };
+
+    buttons.forEach((button) => button.addEventListener('click', () => {
+      const context = button.dataset.context as 'a' | 'b';
+      buttons.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+      if (status) status.textContent = messages[context];
+      if (statusWrap) {
+        statusWrap.removeAttribute('data-updated');
+        void statusWrap.offsetWidth;
+        statusWrap.setAttribute('data-updated', '');
+      }
+    }));
+    flow.dataset.enhanced = '';
+  });
+</script>

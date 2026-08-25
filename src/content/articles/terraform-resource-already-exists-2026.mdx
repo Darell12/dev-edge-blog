@@ -1,0 +1,147 @@
+---
+title: "Terraform dice que el recurso ya existe: recupera la propiedad del state"
+description: "Cómo diagnosticar Terraform Resource Already Exists sin borrar infraestructura: state ownership, drift, import, verificación y rollback seguro."
+pubDate: 2026-08-25
+author: "Darell E."
+tags: ["Terraform", "IaC", "DevOps", "AWS", "Infrastructure"]
+featured: false
+draft: false
+lang: es
+translationKey: "terraform-resource-already-exists-2026"
+---
+
+import TerraformStateFlow from '../../components/TerraformStateFlow.astro';
+
+## El problema no es que Terraform no pueda crear el recurso
+
+Un `AlreadyExists`, `AlreadyAssociated` o conflicto de creación suele disparar la reacción equivocada: borrar algo y volver a ejecutar `apply`. No lo hagas. Terraform no está diciendo que la infraestructura esté necesariamente mal; está diciendo que intenta crear algo que el proveedor ya conoce, mientras su state no lo considera bajo su propiedad.
+
+La pregunta correcta no es “¿cómo lo elimino?”, sino: **¿qué objeto real existe, quién debería administrarlo y qué representa hoy el state?**
+
+Terraform trabaja con dos fuentes de verdad: la configuración define el estado deseado y el state registra qué objetos remotos administra cada dirección de recurso. Si un objeto existe pero falta esa relación en el state, Terraform planea un `create`. El proveedor rechaza la creación porque el objeto —o una relación exclusiva, como una asociación— ya existe.
+
+
+<TerraformStateFlow lang="es" />
+
+---
+
+## Drift y conflicto real no son lo mismo
+
+Estos errores comparten síntomas, pero no tratamiento.
+
+| Situación | Qué ocurrió | Respuesta segura |
+|---|---|---|
+| Recurso existente fuera del state | El objeto fue creado fuera de Terraform, migrado o se perdió del backend | Confirmar que la configuración debe poseerlo e importarlo |
+| Drift | Un recurso ya administrado cambió fuera de la configuración | Comparar state, configuración y remoto; dejar que el plan reconcilie o ajustar código |
+| Conflicto real | La configuración intenta administrar un objeto que pertenece a otro módulo, state o equipo | Definir un único dueño; no importar a ciegas |
+| Dirección equivocada | Un `for_each`, `count`, módulo o nombre cambió | Mover o importar hacia la dirección correcta, después de revisar el plan |
+
+El detalle importante: **drift no significa automáticamente que el objeto falte del state**. Puede ser una propiedad diferente en un recurso que Terraform sí conoce. En cambio, un error al crear normalmente señala una brecha de ownership: el proveedor tiene el objeto y la dirección de Terraform no.
+
+También puede haber más de un state gestionando la misma cosa. Importar el mismo objeto en ambos no arregla nada; duplica la disputa. Primero decide cuál configuración será la propietaria y cuál solo la consulta mediante `data` sources o salidas remotas.
+
+---
+
+## Flujo de diagnóstico seguro
+
+No ejecutes `import` por intuición. Seguí una secuencia corta y reversible.
+
+### 1. Congelá cambios concurrentes
+
+Mientras investigas, evita `apply` paralelos sobre el mismo alcance. No necesitas borrar, recrear ni editar el objeto remoto para diagnosticar. La prioridad es que nadie cambie state y proveedor al mismo tiempo.
+
+### 2. Leé el error como una pista, no como una instrucción
+
+Identificá la dirección que Terraform intentó crear y el tipo de objeto. Luego buscá si ya está registrado:
+
+```bash
+terraform state list | grep 'aws_example_binding.app'
+terraform state show 'aws_example_binding.app["blue"]'
+```
+
+Si no aparece en `state list`, eso confirma solo una ausencia local: todavía falta saber si el recurso remoto corresponde a esa dirección. Si aparece, compara sus atributos con la configuración y con la API o consola del proveedor en modo lectura.
+
+### 3. Confirmá la intención de la configuración
+
+Revisá el bloque Terraform que declara el recurso. Preguntá:
+
+- ¿Ese recurso debe existir una sola vez o por cada clave de `for_each`?
+- ¿El módulo, la clave o el índice cambiaron recientemente?
+- ¿Otro state ya tiene una dirección que describe el mismo objeto?
+- ¿La configuración actual representa el objeto existente tal como debería quedar?
+
+No importes un objeto para “hacer verde el pipeline” si la configuración lo reemplazaría, lo asociaría a un destino incorrecto o lo duplicaría en el siguiente plan.
+
+### 4. Inspeccioná el remoto con identificadores sintéticos
+
+Usá una consulta de sólo lectura del proveedor para confirmar identidad y propiedades críticas. Por ejemplo, para un recurso con ID sintético:
+
+```bash
+cloudctl example describe --id example-1234567890
+```
+
+El comando exacto depende del proveedor. Lo importante es registrar una correspondencia verificable entre el objeto remoto, la dirección Terraform y el identificador que acepta `terraform import`.
+
+---
+
+## Importar es declarar ownership, no reparar infraestructura
+
+Cuando la configuración debe administrar el objeto existente y ningún otro state lo posee, importarlo es el cambio mínimo. El import modifica el state; no crea, borra ni actualiza el recurso remoto.
+
+Ejemplo con una dirección y un identificador deliberadamente sintéticos:
+
+```bash
+terraform import \
+  'aws_example_binding.app["blue"]' \
+  'example-1234567890'
+```
+
+Para muchos recursos compuestos, el import ID combina campos. Consulta la documentación del tipo de recurso y usa solo los valores del entorno donde ejecutas Terraform. No copies identificadores entre cuentas, entornos o backends.
+
+Después del import, el trabajo recién empieza. Ejecutá un plan guardado y leelo completo:
+
+```bash
+terraform plan -out=recovery.tfplan
+terraform show recovery.tfplan
+```
+
+El resultado esperado no siempre es “sin cambios”. Puede haber una actualización in-place porque el recurso remoto refleja una decisión manual anterior y la configuración define el estado deseado. Eso puede ser correcto, pero sólo si cada cambio es entendido y aceptable.
+
+Detenete si el plan propone destruir, reemplazar o modificar objetos fuera del alcance de la recuperación. Un import exitoso sólo prueba que Terraform puede leer el objeto; no prueba que el código sea seguro para aplicarlo.
+
+---
+
+## Casos que requieren otra herramienta
+
+No todo se resuelve con import.
+
+- **Cambio de dirección sin cambio remoto:** si el recurso ya está en el mismo state pero cambió de módulo o clave, un bloque `moved` es más preciso que importar otra vez.
+- **Objeto que debe dejar de ser administrado:** `terraform state rm` elimina ownership del state, no el objeto remoto. Es útil sólo después de decidir explícitamente quién lo administrará.
+- **Recurso compartido:** modélalo como `data` source o expón sus valores desde el state dueño. Dos configuraciones no deberían competir por el mismo ciclo de vida.
+- **Recurso no compatible con la configuración:** corrige la configuración antes de importar. El state no convierte una intención incorrecta en una segura.
+
+En producción, borrar y recrear para resolver un conflicto es especialmente peligroso: puede cambiar direcciones, dependencias, datos, permisos o conectividad. La recuperación de state busca precisamente evitar ese riesgo.
+
+---
+
+## Rollback y verificación
+
+Antes de cambiar state, asegura una copia recuperable mediante el backend y el mecanismo operativo aprobado por tu equipo. Si el import fue hacia una dirección equivocada, el rollback habitual es restaurar el state desde esa copia o eliminar **solo** esa entrada de ownership después de revisar la dirección correcta. No uses el rollback como permiso para tocar el recurso remoto.
+
+La verificación mínima queda así:
+
+1. `terraform state show` muestra el objeto en la dirección esperada.
+2. `terraform plan` no intenta crearlo de nuevo.
+3. Cada cambio restante del plan tiene una explicación concreta.
+4. No existe otro state intentando administrar el mismo objeto.
+5. El `apply` se ejecuta con el plan revisado y el bloqueo de state activo.
+
+Cuando el plan vuelve a ser predecible, el incidente deja de ser un error de creación y vuelve a ser lo que Terraform hace mejor: reconciliar una intención declarada con infraestructura existente.
+
+---
+
+## Conclusión
+
+`Resource Already Exists` no es una invitación a destruir infraestructura. Es una alarma sobre ownership. Separa drift de conflicto real, verifica quién debe poseer el objeto, importa solo cuando la configuración sea la dueña correcta y revisa el plan antes de aplicar.
+
+---

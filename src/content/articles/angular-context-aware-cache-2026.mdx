@@ -1,0 +1,141 @@
+---
+title: "Bugs de caché en Angular al cambiar de contexto de usuario"
+description: "Cómo evitar datos obsoletos en Angular: claves compuestas por usuario, tenant y filtros; invalidación explícita, diagnóstico seguro y pruebas."
+pubDate: 2026-08-25
+author: "Darell E."
+tags: ["Angular", "TypeScript", "Cache", "Frontend"]
+featured: false
+draft: false
+lang: es
+translationKey: "angular-context-aware-cache-2026"
+---
+
+import ContextAwareCacheFlow from '../../components/ContextAwareCacheFlow.astro';
+
+## El bug: la API respondió bien, pero el usuario vio datos ajenos a su contexto
+
+Una caché suele fallar después de cambiar de usuario, tenant, cuenta activa o permiso. La pantalla solicita el mismo endpoint y la caché responde rápido; el problema es que esa respuesta pertenece al contexto anterior.
+
+La causa no es Angular ni `HttpClient`. Es una clave que no representa el resultado. Si la respuesta depende de `contextId`, una clave basada solo en la URL afirma erróneamente que ambas solicitudes son equivalentes.
+
+<ContextAwareCacheFlow lang="es" />
+
+La regla es sencilla: **la clave debe incluir cada input que pueda cambiar la respuesta**. Normalmente incluye ruta, parámetros normalizados, usuario o tenant actual, idioma, permisos relevantes y versión de datos cuando aplique. No agregues valores decorativos: solo dependencias reales del resultado.
+
+---
+
+## Un servicio pequeño con clave compuesta
+
+Este ejemplo mantiene la caché en memoria. El servicio que conoce el cambio de contexto la invalida explícitamente; no deja que una entrada vieja sobreviva por casualidad.
+
+```ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, shareReplay } from 'rxjs';
+
+interface Summary {
+  total: number;
+}
+
+@Injectable({ providedIn: 'root' })
+export class SummaryCache {
+  private contextId = '';
+  private readonly entries = new Map<string, Observable<Summary>>();
+
+  constructor(private readonly http: HttpClient) {}
+
+  setContext(contextId: string): void {
+    if (contextId === this.contextId) return;
+    this.contextId = contextId;
+    this.entries.clear();
+  }
+
+  getSummary(filter: string): Observable<Summary> {
+    const normalizedFilter = filter.trim().toLowerCase();
+    const key = `summary:${this.contextId}:${normalizedFilter}`;
+    const cached = this.entries.get(key);
+
+    if (cached) return cached;
+
+    const request = this.http
+      .get<Summary>('/api/summary', { params: { filter: normalizedFilter } })
+      .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+    this.entries.set(key, request);
+    return request;
+  }
+}
+```
+
+El detalle importante no es el `Map`; es la identidad. Dos contextos o filtros distintos producen claves distintas. `setContext` borra las entradas cuando la fuente de identidad cambia, lo que también evita conservar datos sensibles más tiempo del necesario.
+
+Si el cambio de usuario crea una aplicación completamente nueva, una caché en memoria puede desaparecer sola. No dependas de ese efecto: el problema reaparece con un selector de tenant, una impersonación administrativa, un cambio de permisos o una caché persistente.
+
+---
+
+## Diagnóstico seguro
+
+Empieza sin exponer datos reales.
+
+1. Reproduce con dos contextos de prueba y respuestas sintéticas distinguibles, como `response A` y `response B`.
+2. Registra o inspecciona solo la forma de la clave: ruta, filtros normalizados y un identificador sintético de contexto.
+3. Cambia de contexto sin recargar la aplicación y confirma si la segunda solicitud obtiene un `HIT` para una clave que no contiene el contexto.
+4. Revisa todos los lugares que leen y limpian la caché. Corregir solo un componente deja rutas hermanas vulnerables.
+
+Evita registrar cuerpos de respuestas, tokens o identificadores reales. Para este diagnóstico basta demostrar que dos resultados distintos están usando la misma clave.
+
+---
+
+## Pruebas que detectan la regresión
+
+La prueba mínima verifica identidad e invalidación, no la implementación interna de `Map`. Cada prueba crea su propia caché y cliente HTTP falso, así que puede ejecutarse de forma aislada.
+
+```ts
+it('does not reuse a summary after the context changes', () => {
+  const { cache, fakeHttp } = createSummaryCacheWithFakeHttp();
+
+  cache.setContext('context-a');
+  cache.getSummary('open').subscribe();
+
+  cache.setContext('context-b');
+  cache.getSummary('open').subscribe();
+
+  expect(fakeHttp.urls).toEqual(['/api/summary', '/api/summary']);
+});
+
+it('reuses the same request inside one context', () => {
+  const { cache, fakeHttp } = createSummaryCacheWithFakeHttp();
+
+  cache.setContext('context-a');
+  cache.getSummary('open').subscribe();
+  cache.getSummary(' OPEN ').subscribe();
+
+  expect(fakeHttp.urls).toHaveLength(1);
+});
+```
+
+Añade un caso por cada dimensión que altere la respuesta: tenant, idioma, filtro, rol o versión. Si una dimensión no aparece en la clave, la prueba debe demostrar que no cambia el resultado; de lo contrario, inclúyela.
+
+---
+
+## Errores frecuentes
+
+| Error | Por qué falla | Corrección mínima |
+|---|---|---|
+| Usar solo la URL | Dos contextos comparten una entrada | Añadir identidad de contexto a la clave |
+| Limpiar solo al cerrar sesión | Un cambio de tenant o permisos mantiene datos anteriores | Invalidar en toda transición de contexto |
+| Usar objetos sin normalizar como clave | El orden o el espaciado crean entradas duplicadas | Normalizar valores antes de formar la clave |
+| Guardar una caché global sin alcance | Una pantalla comparte datos con otra | Mantener la caché cerca de su dominio de datos |
+| Confiar solo en TTL | Durante el TTL el dato equivocado sigue siendo posible | Invalidar de forma explícita al cambiar contexto |
+
+Un TTL controla antigüedad; no corrige identidad. La clave evita que un dato incorrecto entre; la invalidación elimina datos que dejaron de ser válidos.
+
+---
+
+## Lista de verificación
+
+- [ ] La clave contiene todos los inputs que cambian el resultado.
+- [ ] Los valores se normalizan antes de crear la clave.
+- [ ] Cada transición de usuario, tenant, permiso o cuenta invalida el dominio afectado.
+- [ ] Las pruebas cubren un `HIT` dentro del mismo contexto y un `MISS` entre contextos.
+- [ ] Los logs de diagnóstico usan valores sintéticos y no incluyen respuestas ni credenciales.

@@ -1,0 +1,149 @@
+---
+interface Props {
+  lang?: 'es' | 'en';
+}
+
+const { lang = 'es' } = Astro.props;
+const copy = lang === 'es'
+  ? {
+      title: 'Dos modelos de despliegue, dos límites de aislamiento',
+      shared: 'Build compartido',
+      independent: 'Despliegues independientes',
+      sharedLead: 'Un build Angular sirve a varios hosts; el edge identifica el tenant.',
+      independentLead: 'Cada tenant recibe su propio build y despliegue.',
+      sharedPoints: ['Una liberación alcanza a todos los tenants.', 'El host se resuelve en el edge y la app obtiene el contexto.', 'Las reglas de caché y dominios se operan como una plataforma compartida.'],
+      independentPoints: ['Cada tenant tiene su propia versión publicada.', 'Un rollback o una liberación puede aislarse por tenant.', 'Dominios, caché y configuración se repiten por despliegue.'],
+      choose: 'Selecciona un modelo para ver su criterio principal.',
+      sharedExplanation: 'Build compartido: úsalo cuando los tenants comparten código y calendario de liberación; protege los límites de datos y autorización fuera del bundle.',
+      independentExplanation: 'Despliegues independientes: úsalos cuando cada tenant necesita una versión, configuración o ventana de cambio separada.',
+      ruleTitle: 'Regla breve',
+      rule: 'Si un tenant necesita liberar o revertir sin afectar a otro, sepáralo en el despliegue. Si la independencia es solo de datos y autorización, un build compartido puede ser suficiente.',
+      sharedAria: 'Explicar el modelo de build compartido',
+      independentAria: 'Explicar el modelo de despliegues independientes',
+      hosts: ['escuela.example.test', 'clinica.example.test'],
+      app: 'app Angular',
+      edge: 'edge: identifica el host',
+      build: 'build compartido',
+      deploy: 'despliegue por tenant',
+    }
+  : {
+      title: 'Two deployment models, two isolation boundaries',
+      shared: 'Shared build',
+      independent: 'Independent deployments',
+      sharedLead: 'One Angular build serves several hosts; the edge identifies the tenant.',
+      independentLead: 'Each tenant receives its own build and deployment.',
+      sharedPoints: ['One release reaches every tenant.', 'The edge resolves the host and the app receives the context.', 'Cache rules and domains are operated as a shared platform.'],
+      independentPoints: ['Each tenant has its own published version.', 'A rollback or release can be isolated per tenant.', 'Domains, cache, and configuration are repeated per deployment.'],
+      choose: 'Select a model to hear its primary decision rule.',
+      sharedExplanation: 'Shared build: use it when tenants share code and a release calendar; enforce data and authorization boundaries outside the bundle.',
+      independentExplanation: 'Independent deployments: use it when each tenant needs a separate version, configuration, or change window.',
+      ruleTitle: 'Short rule',
+      rule: 'If one tenant must release or roll back without affecting another, separate the deployment. If independence is only data and authorization, a shared build can be enough.',
+      sharedAria: 'Explain the shared-build model',
+      independentAria: 'Explain the independent-deployment model',
+      hosts: ['school.example.test', 'clinic.example.test'],
+      app: 'Angular app',
+      edge: 'edge: identifies host',
+      build: 'shared build',
+      deploy: 'deployment per tenant',
+    };
+---
+
+<section class="tenant-flow" data-tenant-flow aria-labelledby="tenant-flow-title">
+  <div class="tenant-flow__heading">
+    <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path d="M8 14h32M8 24h32M8 34h20" /><circle cx="35" cy="34" r="5" /></svg>
+    <h3 id="tenant-flow-title">{copy.title}</h3>
+  </div>
+
+  <div class="tenant-flow__models">
+    <article class="tenant-flow__model is-selected" data-model="shared" data-explanation={copy.sharedExplanation}>
+      <div class="tenant-flow__model-head"><span>01</span><h4>{copy.shared}</h4></div>
+      <p>{copy.sharedLead}</p>
+      <div class="tenant-flow__diagram">
+        <div class="tenant-flow__diagram-hosts">
+          <span class="tenant-flow__node">{copy.hosts[0]}</span>
+          <span class="tenant-flow__node">{copy.hosts[1]}</span>
+        </div>
+        <span class="tenant-flow__diagram-arrow" aria-hidden="true">↓</span>
+        <span class="tenant-flow__node tenant-flow__node--accent">{copy.edge}</span>
+        <span class="tenant-flow__diagram-arrow" aria-hidden="true">↓</span>
+        <span class="tenant-flow__node tenant-flow__node--accent">{copy.build}</span>
+      </div>
+      <ul>{copy.sharedPoints.map((point) => <li>{point}</li>)}</ul>
+      <button type="button" data-select="shared" aria-pressed="true" aria-label={copy.sharedAria}>{copy.shared}</button>
+    </article>
+
+    <article class="tenant-flow__model" data-model="independent" data-explanation={copy.independentExplanation}>
+      <div class="tenant-flow__model-head"><span>02</span><h4>{copy.independent}</h4></div>
+      <p>{copy.independentLead}</p>
+      <div class="tenant-flow__diagram tenant-flow__diagram--rows">
+        <div class="tenant-flow__diagram-row">
+          <span class="tenant-flow__node">{copy.hosts[0]}</span>
+          <span class="tenant-flow__diagram-arrow" aria-hidden="true">→</span>
+          <span class="tenant-flow__node tenant-flow__node--accent">{copy.app}</span>
+        </div>
+        <div class="tenant-flow__diagram-row">
+          <span class="tenant-flow__node">{copy.hosts[1]}</span>
+          <span class="tenant-flow__diagram-arrow" aria-hidden="true">→</span>
+          <span class="tenant-flow__node tenant-flow__node--accent">{copy.app}</span>
+        </div>
+        <p class="tenant-flow__diagram-caption">{copy.deploy}</p>
+      </div>
+      <ul>{copy.independentPoints.map((point) => <li>{point}</li>)}</ul>
+      <button type="button" data-select="independent" aria-pressed="false" aria-label={copy.independentAria}>{copy.independent}</button>
+    </article>
+  </div>
+
+  <p class="tenant-flow__explanation" aria-live="polite"><span data-explanation-text>{copy.choose}</span></p>
+  <aside class="tenant-flow__rule" aria-labelledby="tenant-flow-rule"><strong id="tenant-flow-rule">{copy.ruleTitle}</strong><span>{copy.rule}</span></aside>
+</section>
+
+<style>
+  .tenant-flow { margin: var(--space-lg) 0; padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-alt); }
+  .tenant-flow__heading { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md); }
+  .tenant-flow__heading svg { width: 1.35rem; fill: none; stroke: var(--color-accent); stroke-width: 3; stroke-linecap: round; }
+  .tenant-flow h3, .tenant-flow h4 { color: var(--color-fg); font-family: var(--font-heading); }
+  .tenant-flow h3 { margin: 0; font-size: 1.125rem; }.tenant-flow h4 { margin: 0; font-size: 1rem; }
+  .tenant-flow__models { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
+  .tenant-flow__model { display: grid; gap: var(--space-sm); padding: var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+  .tenant-flow__model.is-selected { border-color: var(--color-accent); box-shadow: inset 3px 0 0 var(--color-accent); }
+  .tenant-flow__model-head { display: flex; align-items: center; gap: .5rem; }.tenant-flow__model-head span { color: var(--color-accent); font: 700 .75rem/1 var(--font-mono); }
+  .tenant-flow__model p, .tenant-flow__model li, .tenant-flow__explanation, .tenant-flow__rule { color: var(--color-fg-muted); font-size: .875rem; line-height: 1.55; }
+  .tenant-flow__model p { margin: 0; }.tenant-flow__model ul { display: grid; gap: .35rem; margin: 0; padding-left: 1.15rem; }
+  .tenant-flow__diagram { display: flex; flex-direction: column; align-items: center; gap: .4rem; }
+  .tenant-flow__diagram--rows { align-items: flex-start; }
+  .tenant-flow__diagram-hosts { display: flex; flex-direction: column; align-items: center; gap: .4rem; }
+  .tenant-flow__diagram-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .tenant-flow__node { padding: .35rem .5rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg-alt); color: var(--color-fg-muted); font: 600 .75rem/1.3 var(--font-mono); white-space: nowrap; }
+  .tenant-flow__node--accent { border-color: var(--color-accent); color: var(--color-fg); }
+  .tenant-flow__diagram-arrow { flex: 0 0 auto; color: var(--color-fg-subtle); font-size: .875rem; }
+  .tenant-flow__diagram-caption { margin: 0; color: var(--color-fg-subtle); font: 600 .75rem/1.3 var(--font-mono); }
+  .tenant-flow button { display: none; min-height: 2.5rem; padding: .5rem .75rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: transparent; color: var(--color-fg); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }.tenant-flow[data-enhanced] button { display: block; }.tenant-flow button:hover, .tenant-flow button[aria-pressed="true"] { border-color: var(--color-accent); color: var(--color-accent); }.tenant-flow button:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
+  .tenant-flow__explanation { min-height: 2.8rem; margin: var(--space-md) 0; }.tenant-flow__rule { display: grid; grid-template-columns: auto 1fr; gap: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--color-border); }.tenant-flow__rule strong { color: var(--color-fg); white-space: nowrap; }
+  @media (max-width: 42rem) { .tenant-flow__models { grid-template-columns: 1fr; }.tenant-flow__rule { grid-template-columns: 1fr; gap: .25rem; } }
+  @media (prefers-reduced-motion: no-preference) { .tenant-flow__model { transition: border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out); }.tenant-flow__explanation[data-updated] { animation: tenant-flow-fade var(--duration-fast) var(--ease-out); } @keyframes tenant-flow-fade { from { opacity: .35; transform: translateY(2px); } to { opacity: 1; transform: none; } } }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-tenant-flow]').forEach((flow) => {
+    const explanations = {
+      shared: flow.querySelector<HTMLElement>('[data-model="shared"]')?.dataset.explanation,
+      independent: flow.querySelector<HTMLElement>('[data-model="independent"]')?.dataset.explanation,
+    };
+    const explanation = flow.querySelector<HTMLElement>('[data-explanation-text]');
+    const models = flow.querySelectorAll<HTMLElement>('[data-model]');
+    const buttons = flow.querySelectorAll<HTMLButtonElement>('[data-select]');
+    buttons.forEach((button) => button.addEventListener('click', () => {
+      const selected = button.dataset.select as keyof typeof explanations;
+      models.forEach((model) => model.classList.toggle('is-selected', model.dataset.model === selected));
+      buttons.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+      if (explanation) {
+        explanation.textContent = explanations[selected] || '';
+        explanation.parentElement?.removeAttribute('data-updated');
+        void explanation.offsetWidth;
+        explanation.parentElement?.setAttribute('data-updated', '');
+      }
+    }));
+    flow.dataset.enhanced = '';
+  });
+</script>

@@ -1,0 +1,93 @@
+---
+title: "Multi-tenant Angular deployments: CloudFront vs Cloudflare Pages"
+description: "How to choose between one shared Angular build with hostname routing and independent tenant deployments without confusing data isolation with release isolation."
+pubDate: 2026-08-25
+author: "Darell E."
+tags: ["Angular", "Multi-tenant", "CloudFront", "Cloudflare Pages", "Deployment"]
+featured: false
+draft: false
+lang: en
+translationKey: "angular-multi-tenant-deployment-2026"
+---
+
+import MultiTenantDeploymentFlow from '../../components/MultiTenantDeploymentFlow.astro';
+
+## The decision is not CloudFront versus Cloudflare Pages
+
+The real decision is **what must be isolated per tenant**. One Angular build can serve several hostnames when the edge identifies the host and the application receives tenant context. You can also publish one build per tenant, with its own project, domain, and version. Both can be correct; they solve different operational boundaries.
+
+- **Shared build:** one release, one artifact, and hostname routing at the edge.
+- **Independent deployment:** one artifact and one release per tenant.
+
+<MultiTenantDeploymentFlow lang="en" />
+
+---
+
+## Compare the boundary that matters
+
+| Criterion | Shared build with hostname routing | Independent deployment per tenant |
+|---|---|---|
+| Tenant isolation | Must live in authentication, authorization, data, and backend configuration; the bundle is not a security boundary. | Adds artifact and release separation, but does not replace authorization or data controls. |
+| Routing | The CDN or an edge function resolves `school.example.test` and serves the same frontend with tenant context. | Each hostname maps to its own publication; the frontend can include tenant-specific configuration. |
+| Release independence | Low: one shared version reaches everyone. | High: one tenant can be published, paused, or rolled back without changing others. |
+| Caching and domains | A common policy simplifies the platform; it requires discipline to avoid mixing content or responses by host. | Policies and domains are managed per tenant; there are more surfaces to review. |
+| Operations | Fewer pipelines, artifacts, and deployment points. | More projects or distributions, configuration, verification, and automation. |
+
+Do not turn this table into a promise of automatic isolation. For example, an independent build does not stop an API from returning another tenant’s data if the server accepts an identifier without validating identity. The security boundary belongs where the request is authorized and its data is filtered.
+
+---
+
+## Model 1: one Angular build, multiple hostnames
+
+This model fits when tenants share a product, code, and release calendar. The edge receives a hostname such as `school.example.test` and routes the request to the same static artifact. Angular can read configuration context at startup; the backend remains responsible for validating the tenant and user on every call.
+
+The design is small, but it needs clear rules:
+
+1. **Do not trust only a browser-supplied hostname.** The backend should derive or validate the tenant against identity, an allowed domain, and permissions.
+2. **Separate tenant-dependent content.** If an API response, generated HTML, or redirect varies by host, the cache key and headers must respect that variation.
+3. **Keep the Angular shell updateable.** `index.html` and service-worker manifests often need a different policy from hashed assets. That lets the application discover a new version without leaving the entry page stale.
+4. **Test deep links.** The CDN needs to serve the SPA entry point for Angular Router routes; otherwise a refresh on an internal URL can return a 404.
+
+CloudFront commonly models this pattern with origins, cache behaviors, edge functions, and domains associated with a distribution. You do not need an edge function when the origin and content are identical for every hostname, but you still need to decide where tenant context is obtained and validated.
+
+---
+
+## Model 2: one deployment per tenant
+
+One Cloudflare Pages project—or a separate distribution and origin—per tenant fits when the artifact must change independently: a build configuration, integration, maintenance window, or isolated rollback.
+
+The main advantage is delivery, not security. You can keep `school.example.test` on one publication while `clinic.example.test` receives another. The operational cost is that every tenant needs reproducible build configuration, domain setup, caching, SPA fallback, and post-deployment verification.
+
+In Cloudflare Pages, SPA fallback and cache headers can be declared as static files in the build output. Avoid overlapping header rules when the provider combines values rather than replacing them: a precise rule per path is easier to verify. Custom domains also need to be checked against the correct project; a page may return successfully while still serving another tenant’s build when the domain points to the wrong publication.
+
+---
+
+## How to choose without over-designing
+
+Choose a **shared build** when every tenant can accept the same version at the same time and the real differences are data, permissions, and server-validated configuration. It has fewer artifacts and fewer repeated steps.
+
+Choose **independent deployments** when you need any of these operational guarantees:
+
+- release, roll back, or freeze one tenant without affecting others;
+- compile configurations that should not coexist in the same artifact;
+- validate a tenant’s domain, integration, or cache behavior before publishing;
+- delegate operation of one publication without handing over control of the whole platform.
+
+You can start with a shared build and split only tenants that demonstrate a need for independence. Reversing that creates a matrix of pipelines and domains before anyone needs it.
+
+---
+
+## Release checklist
+
+Before publishing either model, verify:
+
+- [ ] The backend authorizes both user and tenant; hostname is not the only proof.
+- [ ] Angular internal routes survive a browser refresh.
+- [ ] `index.html` and update files are not trapped in a long cache.
+- [ ] Hashed assets can reuse cache without hiding a new shell version.
+- [ ] Every custom domain serves the expected artifact.
+- [ ] Rollback has an identifiable artifact or publication and a post-rollback check.
+
+## Conclusion
+
+CloudFront and Cloudflare Pages are delivery mechanisms; the multi-tenant model defines the boundary you operate. Share a build when you share releases, and separate deployments when you need true publishing independence. In both cases, keep data isolation and authorization in the backend, where they can be verified on every request.

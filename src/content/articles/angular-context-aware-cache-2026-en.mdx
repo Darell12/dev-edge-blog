@@ -1,0 +1,141 @@
+---
+title: "Angular cache bugs after switching user context"
+description: "Prevent stale Angular data with composite cache keys for user, tenant, and filters; explicit invalidation, safe diagnosis, and tests."
+pubDate: 2026-08-25
+author: "Darell E."
+tags: ["Angular", "TypeScript", "Cache", "Frontend"]
+featured: false
+draft: false
+lang: en
+translationKey: "angular-context-aware-cache-2026"
+---
+
+import ContextAwareCacheFlow from '../../components/ContextAwareCacheFlow.astro';
+
+## The bug: the API was correct, but the user saw data from another context
+
+A cache often breaks after switching user, tenant, active account, or permission set. The screen requests the same endpoint and the cache responds quickly—but that response belongs to the previous context.
+
+The cause is not Angular or `HttpClient`. It is a key that does not represent the result. If a response depends on `contextId`, a URL-only key incorrectly claims that both requests are equivalent.
+
+<ContextAwareCacheFlow lang="en" />
+
+The rule is simple: **a cache key must include every input that can change the result**. That commonly means route, normalized parameters, current user or tenant, locale, relevant permissions, and a data version when applicable. Do not add decorative values; include only real result dependencies.
+
+---
+
+## A small service with a composite key
+
+This example keeps an in-memory cache. The service that knows about a context transition explicitly invalidates it; stale entries do not survive by accident.
+
+```ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, shareReplay } from 'rxjs';
+
+interface Summary {
+  total: number;
+}
+
+@Injectable({ providedIn: 'root' })
+export class SummaryCache {
+  private contextId = '';
+  private readonly entries = new Map<string, Observable<Summary>>();
+
+  constructor(private readonly http: HttpClient) {}
+
+  setContext(contextId: string): void {
+    if (contextId === this.contextId) return;
+    this.contextId = contextId;
+    this.entries.clear();
+  }
+
+  getSummary(filter: string): Observable<Summary> {
+    const normalizedFilter = filter.trim().toLowerCase();
+    const key = `summary:${this.contextId}:${normalizedFilter}`;
+    const cached = this.entries.get(key);
+
+    if (cached) return cached;
+
+    const request = this.http
+      .get<Summary>('/api/summary', { params: { filter: normalizedFilter } })
+      .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+    this.entries.set(key, request);
+    return request;
+  }
+}
+```
+
+The important part is not the `Map`; it is identity. Different contexts or filters produce different keys. `setContext` clears entries whenever the identity source changes, which also prevents sensitive data from remaining available longer than needed.
+
+A full application restart on sign-out may incidentally clear an in-memory cache. Do not rely on that: the bug returns with a tenant picker, administrative impersonation, a permission update, or persistent storage.
+
+---
+
+## Diagnose it safely
+
+Start without exposing real data.
+
+1. Reproduce with two test contexts and distinct synthetic responses, such as `response A` and `response B`.
+2. Log or inspect only the key shape: route, normalized filters, and a synthetic context identifier.
+3. Switch context without reloading the application, then verify whether the second request gets a `HIT` for a key that omits context.
+4. Review every cache reader and invalidator. Fixing one component leaves sibling paths exposed.
+
+Do not log response bodies, tokens, or real identifiers. The diagnosis only needs to prove that two different results use the same key.
+
+---
+
+## Tests that catch the regression
+
+The smallest useful tests verify identity and invalidation—not the `Map` implementation. Each test creates its own cache and fake HTTP client, so it can run in isolation.
+
+```ts
+it('does not reuse a summary after the context changes', () => {
+  const { cache, fakeHttp } = createSummaryCacheWithFakeHttp();
+
+  cache.setContext('context-a');
+  cache.getSummary('open').subscribe();
+
+  cache.setContext('context-b');
+  cache.getSummary('open').subscribe();
+
+  expect(fakeHttp.urls).toEqual(['/api/summary', '/api/summary']);
+});
+
+it('reuses the same request inside one context', () => {
+  const { cache, fakeHttp } = createSummaryCacheWithFakeHttp();
+
+  cache.setContext('context-a');
+  cache.getSummary('open').subscribe();
+  cache.getSummary(' OPEN ').subscribe();
+
+  expect(fakeHttp.urls).toHaveLength(1);
+});
+```
+
+Add one case for every dimension that changes a result: tenant, locale, filter, role, or version. If a dimension is absent from the key, the test must prove it cannot change the response; otherwise, include it.
+
+---
+
+## Common pitfalls
+
+| Pitfall | Why it fails | Smallest correction |
+|---|---|---|
+| URL-only key | Two contexts share one entry | Add context identity to the key |
+| Clear only on sign-out | Tenant or permission changes retain old data | Invalidate on every context transition |
+| Use unnormalized objects as keys | Ordering and whitespace create duplicate entries | Normalize values before composing the key |
+| One global, unscoped cache | One screen shares data with another | Keep cache ownership close to its data domain |
+| Rely on TTL alone | Incorrect data remains possible during the TTL | Explicitly invalidate on context change |
+
+A TTL controls age; it does not correct identity. The key prevents incorrect data from entering, and invalidation removes data that is no longer valid.
+
+---
+
+## Checklist
+
+- [ ] The key includes every input that changes the result.
+- [ ] Values are normalized before the key is created.
+- [ ] Every user, tenant, permission, or account transition invalidates the affected domain.
+- [ ] Tests cover a `HIT` within one context and a `MISS` across contexts.
+- [ ] Diagnostic logs use synthetic values and contain neither responses nor credentials.
